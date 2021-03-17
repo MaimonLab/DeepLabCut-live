@@ -11,13 +11,18 @@ import glob
 import warnings
 import numpy as np
 import tensorflow as tf
+import tensorflow.lite as lite
 
 try:
     TFVER = [int(v) for v in tf.__version__.split(".")]
-    if TFVER[1] < 14:
+    if TFVER[0] == 1 and TFVER[1] < 14:
         from tensorflow.contrib.tensorrt import trt_convert as trt
     else:
         from tensorflow.python.compiler.tensorrt import trt_convert as trt
+
+        if TFVER[0] == 2:
+            tf.compat.v1.disable_v2_behavior()
+            lite = tf.compat.v1.lite
 except Exception:
     pass
 
@@ -29,7 +34,6 @@ from dlclive.graph import (
     extract_graph,
 )
 from dlclive.pose import extract_cnn_output, argmax_pose_predict, multi_pose_predict
-from dlclive.display import Display
 from dlclive import utils
 from dlclive.exceptions import DLCLiveError, DLCLiveWarning
 
@@ -98,20 +102,20 @@ class DLCLive(object):
     )
 
     def __init__(
-        self,
-        model_path,
-        model_type="base",
-        precision="FP32",
-        tf_config=None,
-        cropping=None,
-        dynamic=(False, 0.5, 10),
-        resize=None,
-        convert2rgb=True,
-        processor=None,
-        display=False,
-        pcutoff=0.5,
-        display_radius=3,
-        display_cmap="bmy",
+            self,
+            model_path,
+            model_type="base",
+            precision="FP32",
+            tf_config=None,
+            cropping=None,
+            dynamic=(False, 0.5, 10),
+            resize=None,
+            convert2rgb=True,
+            processor=None,
+            display=False,
+            pcutoff=0.5,
+            display_radius=3,
+            display_cmap="bmy",
     ):
 
         self.path = model_path
@@ -125,11 +129,6 @@ class DLCLive(object):
         self.resize = resize
         self.processor = processor
         self.convert2rgb = convert2rgb
-        self.display = (
-            Display(pcutoff=pcutoff, radius=display_radius, cmap=display_cmap)
-            if display
-            else None
-        )
 
         self.sess = None
         self.inputs = None
@@ -192,14 +191,12 @@ class DLCLive(object):
         """
 
         if frame.dtype != np.uint8:
-
             frame = utils.convert_to_ubyte(frame)
 
         if self.cropping:
-
             frame = frame[
-                self.cropping[2] : self.cropping[3], self.cropping[0] : self.cropping[1]
-            ]
+                    self.cropping[2]: self.cropping[3], self.cropping[0]: self.cropping[1]
+                    ]
 
         if self.dynamic[0]:
 
@@ -289,7 +286,7 @@ class DLCLive(object):
             graph = finalize_graph(graph_def)
             output_nodes = get_output_nodes(graph)
             output_nodes = [on.replace("DLC/", "") for on in output_nodes]
-            converter = tf.lite.TFLiteConverter.from_frozen_graph(
+            converter = lite.TFLiteConverter.from_frozen_graph(
                 model_file,
                 ["Placeholder"],
                 output_nodes,
@@ -319,7 +316,7 @@ class DLCLive(object):
             output_tensors = get_output_tensors(graph)
             output_tensors = [ot.replace("DLC/", "") for ot in output_tensors]
 
-            if (TFVER[0] > 1) | (TFVER[0] == 1 & TFVER[1] >= 14):
+            if (TFVER[0] > 1 and not (TFVER[0] == 2 and TFVER[1] == 4)) | (TFVER[0] == 1 & TFVER[1] >= 14):
                 converter = trt.TrtGraphConverter(
                     input_graph_def=graph_def,
                     nodes_blacklist=output_tensors,
@@ -427,11 +424,6 @@ class DLCLive(object):
             pose = np.array(pose_output[0])
             self.pose = pose[:, [1, 0, 2]]
 
-        # display image if display=True before correcting pose for cropping/resizing
-
-        if self.display is not None:
-            self.display.display_frame(frame, self.pose)
-
         # if frame is cropped, convert pose coordinates to original frame coordinates
 
         if self.resize is not None:
@@ -459,5 +451,3 @@ class DLCLive(object):
         self.sess.close()
         self.sess = None
         self.is_initialized = False
-        if self.display is not None:
-            self.display.destroy()
