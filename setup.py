@@ -9,15 +9,11 @@ Licensed under GNU Lesser General Public License v3.0
 
 
 import setuptools
-from importlib.util import find_spec
 import warnings
 import platform
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
-
 install_requires = [
-    "numpy<1.19.0",
+    "numpy",
     "ruamel.yaml",
     "colorcet",
     "pillow",
@@ -41,10 +37,9 @@ setuptools.setup(
     author="A. & M. Mathis Labs",
     author_email="admin@deeplabcut.org",
     description="Class to load exported DeepLabCut networks and perform pose estimation on single frames (from a camera feed)",
-    long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/DeepLabCut/DeepLabCut-live",
-    python_requires=">=3.5, <3.8",
+    python_requires=">=3.5, <=3.8",
     install_requires=install_requires,
     packages=setuptools.find_packages(),
     package_data={"dlclive": ["check_install/*"]},
