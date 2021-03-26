@@ -39,7 +39,7 @@ setuptools.setup(
     description="Class to load exported DeepLabCut networks and perform pose estimation on single frames (from a camera feed)",
     long_description_content_type="text/markdown",
     url="https://github.com/DeepLabCut/DeepLabCut-live",
-    python_requires=">=3.5, <=3.8",
+    python_requires=">=3.5, <=3.9",
     install_requires=install_requires,
     packages=setuptools.find_packages(),
     package_data={"dlclive": ["check_install/*"]},
